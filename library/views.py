@@ -32,36 +32,6 @@ class BookViewSet(viewsets.ModelViewSet):
         status = 'available' if available_copies > 0 else 'unavailable'
         return Response({'title': book.title, 'available_copies': available_copies, 'status': status})
 
-    @action(detail=True, methods=['post'])
-    def borrow(self, request, pk=None):
-        """Allow staff to borrow a book from the available books list."""
-        if not request.user.is_staff:
-            return Response({"error": "Only staff can borrow books."}, status=status.HTTP_403_FORBIDDEN)
-
-        available_book_id = request.data.get('available_book_id')
-        if not available_book_id:
-            return Response({"error": "available_book_id is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Retrieve the AvailableBook and check if it's available.
-        available_book = AvailableBook.objects.filter(id=available_book_id, book_id=pk).first()
-        if not available_book or available_book.is_available() == False:
-            return Response({"error": "No available copies."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create a borrow record.
-        borrow = Borrow.objects.create(user=request.user, available_book=available_book)
-        return Response(BorrowSerializer(borrow).data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    def review(self, request, pk=None):
-        """Allow user to review a book."""
-        book = self.get_object()
-        rating = request.data.get('rating', 0)  # default to 0 if not provided
-        comment = request.data.get('comment', '')
-
-        # Review model will automatically handle validation for rating.
-        review = Review.objects.create(user=request.user, book=book, rating=rating, comment=comment)
-        return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
-
 class RegisterView(APIView):
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
@@ -70,7 +40,6 @@ class RegisterView(APIView):
             token, _ = Token.objects.get_or_create(user=user)
             return Response({'token': token.key}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
