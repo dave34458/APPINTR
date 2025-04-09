@@ -57,3 +57,5 @@ class LogoutView(APIView):
     def delete(self, request):
         request.user.auth_token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
