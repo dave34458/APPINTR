@@ -54,11 +54,14 @@ class AvailableBookViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 class BorrowViewSet(viewsets.ModelViewSet):
-    queryset = Borrow.objects.all()
+    queryset = Borrow.objects.all()  # Return all borrow records
     serializer_class = BorrowSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """Filter borrow records by the logged-in user."""
-        user = self.request.user
-        return Borrow.objects.filter(user=user)  # Optionally filter by the user
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

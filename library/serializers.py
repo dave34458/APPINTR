@@ -23,7 +23,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
-        fields = ['id', 'title', 'author', 'published_date', 'genre', 'isbn', 'description', 'language']
+        fields = [
+            'id', 'title', 'author', 'published_date',
+            'genre', 'isbn', 'description', 'language',
+            'preview_image',
+        ]
+
 
 class AvailableBookSerializer(serializers.ModelSerializer):
     class Meta:

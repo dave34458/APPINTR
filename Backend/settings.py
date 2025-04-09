@@ -134,3 +134,7 @@ REST_FRAMEWORK = {
 APPEND_SLASH = False
 
 AUTH_USER_MODEL = 'library.CustomUser'
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = BASE_DIR / 'media'

@@ -22,6 +22,7 @@ class Book(models.Model):
     isbn = models.CharField(max_length=13, unique=True, blank=True, null=True)
     description = models.TextField(blank=True)
     language = models.CharField(max_length=50, blank=True)
+    preview_image = models.ImageField(upload_to='book_previews/', null=True, blank=True)
 
     def __str__(self):
         return f'{self.title} by {self.author}'
