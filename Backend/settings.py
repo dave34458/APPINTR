@@ -108,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
@@ -132,3 +132,5 @@ REST_FRAMEWORK = {
 }
 
 APPEND_SLASH = False
+
+AUTH_USER_MODEL = 'library.CustomUser'
