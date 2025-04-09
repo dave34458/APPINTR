@@ -7,30 +7,51 @@ from .models import Book, Borrow, AvailableBook, Review
 from .serializers import BookSerializer, BorrowSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer
 from rest_framework.authtoken.models import Token
 
-
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_available_copies(self, book):
-        """Helper function to calculate available copies dynamically."""
-        available_books = AvailableBook.objects.filter(book=book)
-        available_count = 0
-
-        for available_book in available_books:
-            if available_book.is_available():
-                available_count += 1
-
-        return available_count
-
-    @action(detail=True, methods=['get'])
-    def availability(self, request, pk=None):
-        """Check book availability."""
+    @action(detail=True, methods=['get'], url_path='availablebooks')
+    def available_books(self, request, pk=None):
         book = self.get_object()
-        available_copies = self.get_available_copies(book)
-        status = 'available' if available_copies > 0 else 'unavailable'
-        return Response({'title': book.title, 'available_copies': available_copies, 'status': status})
+        available_books = AvailableBook.objects.filter(book=book)
+        serializer = AvailableBookSerializer(available_books, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='availablebooks/(?P<available_book_id>\d+)/borrows')
+    def available_book_borrows(self, request, pk=None, available_book_id=None):
+        borrows = Borrow.objects.filter(available_book_id=available_book_id)
+        serializer = BorrowSerializer(borrows, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='reviews')
+    def reviews(self, request, pk=None):
+        """List all reviews for a specific book."""
+        book = self.get_object()
+        reviews = Review.objects.filter(book=book)
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+class AvailableBookViewSet(viewsets.ModelViewSet):
+    queryset = AvailableBook.objects.all()
+    serializer_class = AvailableBookSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class BorrowViewSet(viewsets.ModelViewSet):
+    queryset = Borrow.objects.all()
+    serializer_class = BorrowSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class RegisterView(APIView):
     def post(self, request):
@@ -47,21 +68,3 @@ class LogoutView(APIView):
     def delete(self, request):
         request.user.auth_token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-class AvailableBookViewSet(viewsets.ModelViewSet):
-    queryset = AvailableBook.objects.all()
-    serializer_class = AvailableBookSerializer
-    permission_classes = [IsAuthenticated]
-
-class BorrowViewSet(viewsets.ModelViewSet):
-    queryset = Borrow.objects.all()  # Return all borrow records
-    serializer_class = BorrowSerializer
-    permission_classes = [IsAuthenticated]
-
-class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
