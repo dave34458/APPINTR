@@ -7,36 +7,20 @@ from .models import Book, Borrow, AvailableBook, Review
 from .serializers import BookSerializer, BorrowSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer
 from rest_framework.authtoken.models import Token
 
+
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [IsAuthenticated]
 
-    @action(detail=True, methods=['get'], url_path='availablebooks')
-    def available_books(self, request, pk=None):
-        book = self.get_object()
-        available_books = AvailableBook.objects.filter(book=book)
-        serializer = AvailableBookSerializer(available_books, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'], url_path='availablebooks/(?P<available_book_id>\d+)/borrows')
-    def available_book_borrows(self, request, pk=None, available_book_id=None):
-        borrows = Borrow.objects.filter(available_book_id=available_book_id)
-        serializer = BorrowSerializer(borrows, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'], url_path='reviews')
-    def reviews(self, request, pk=None):
-        """List all reviews for a specific book."""
-        book = self.get_object()
-        reviews = Review.objects.filter(book=book)
-        serializer = ReviewSerializer(reviews, many=True)
-        return Response(serializer.data)
 
 class AvailableBookViewSet(viewsets.ModelViewSet):
     queryset = AvailableBook.objects.all()
     serializer_class = AvailableBookSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return AvailableBook.objects.filter(book_id=self.kwargs['book_pk'])
 
 
 class BorrowViewSet(viewsets.ModelViewSet):
@@ -44,15 +28,17 @@ class BorrowViewSet(viewsets.ModelViewSet):
     serializer_class = BorrowSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Borrow.objects.filter(available_book_id=self.kwargs['available_book_pk'])
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
+    def get_queryset(self):
+        return Review.objects.filter(book_id=self.kwargs['book_pk'])
 class RegisterView(APIView):
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
