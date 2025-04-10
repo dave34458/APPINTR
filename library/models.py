@@ -27,7 +27,8 @@ class Borrow(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     available_book = models.ForeignKey(AvailableBook, related_name="borrows", on_delete=models.CASCADE)
     borrow_date = models.DateField(auto_now_add=True)
-    return_date = models.DateField(null=True, blank=True)
+    return_date = models.DateField()
+    date_returned = models.DateField(null=True, blank=True)
 
 class Review(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE)
