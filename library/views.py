@@ -1,44 +1,63 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
 from .models import Book, Borrow, AvailableBook, Review
 from .serializers import BookSerializer, BorrowSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer
-from rest_framework.authtoken.models import Token
+from .permissions import IsStaffUser  # Import the custom permission class
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffUser]  # Allow GET for all, POST/PUT/DELETE for staff only
+
+    @action(detail=False, methods=['get'])
+    def available(self, request):
+        available_books = []
+        for book in self.get_queryset():
+            for ab in book.available_books.all():
+                if not ab.borrows.filter(date_returned__isnull=True).exists():
+                    available_books.append(book)
+                    break
+        serializer = self.get_serializer(available_books, many=True)
+        return Response(serializer.data)
 
 
 class AvailableBookViewSet(viewsets.ModelViewSet):
-    queryset = AvailableBook.objects.all()
+    queryset = AvailableBook.objects.all()  # Default queryset
     serializer_class = AvailableBookSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffUser]  # Allow GET for all, POST/PUT/DELETE for staff only
 
     def get_queryset(self):
-        return AvailableBook.objects.filter(book_id=self.kwargs['book_pk'])
+        queryset = super().get_queryset()
+        book_pk = self.kwargs.get('book_pk')
+        if book_pk:
+            queryset = queryset.filter(book_id=book_pk)
+        return queryset
 
 
 class BorrowViewSet(viewsets.ModelViewSet):
     queryset = Borrow.objects.all()
     serializer_class = BorrowSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffUser]  # Allow GET for all, POST/PUT/DELETE for staff only
 
     def get_queryset(self):
-        return Borrow.objects.filter(available_book_id=self.kwargs['available_book_pk'])
+        queryset = super().get_queryset()
+        borrow_id = self.kwargs.get('id')
 
+        if borrow_id:
+            queryset = queryset.filter(id=borrow_id)
+        return queryset
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffUser]
 
-    def get_queryset(self):
-        return Review.objects.filter(book_id=self.kwargs['book_pk'])
 class RegisterView(APIView):
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
@@ -47,6 +66,7 @@ class RegisterView(APIView):
             token, _ = Token.objects.get_or_create(user=user)
             return Response({'token': token.key}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

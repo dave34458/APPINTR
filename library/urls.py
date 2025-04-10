@@ -9,7 +9,7 @@ router = DefaultRouter(trailing_slash=False)
 router.register(r'books', BookViewSet)
 router.register(r'availablebooks', AvailableBookViewSet)
 router.register(r'borrows', BorrowViewSet)
-router.register(r'reviews', ReviewViewSet)
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 # Nested router for availablebooks under books
 books_router = NestedDefaultRouter(router, r'books', lookup='book')
