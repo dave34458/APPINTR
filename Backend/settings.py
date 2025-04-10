@@ -131,9 +131,9 @@ REST_FRAMEWORK = {
     ],
 }
 
-APPEND_SLASH = False
-
 AUTH_USER_MODEL = 'library.CustomUser'
 
 MEDIA_URL = '/media/'  # URL to access media files
 MEDIA_ROOT = BASE_DIR / 'media'  # Directory where media files are stored
+
+APPEND_SLASH = False

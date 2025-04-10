@@ -22,6 +22,7 @@ available_books_router.register(r'borrows', BorrowViewSet, basename='availablebo
 # Nested router for reviews under books
 books_router.register(r'reviews', ReviewViewSet, basename='book-reviews')
 
+app_name = 'library'
 urlpatterns = [
     path('auth/users', RegisterView.as_view()),
     path('auth/sessions', obtain_auth_token),
