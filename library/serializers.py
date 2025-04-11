@@ -19,13 +19,21 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 class BookSerializer(serializers.ModelSerializer):
+    is_available = serializers.SerializerMethodField()
+
     class Meta:
         model = Book
         fields = [
             'id', 'title', 'author', 'published_date',
             'genre', 'isbn', 'description', 'language',
-            'preview_image',
+            'preview_image', 'is_available',
         ]
+
+    def get_is_available(self, obj):
+        for ab in obj.available_books.all():
+            if not ab.borrows.filter(date_returned__isnull=True).exists():
+                return True
+        return False
 
 class AvailableBookSerializer(serializers.ModelSerializer):
     class Meta:

@@ -15,17 +15,6 @@ class BookViewSet(viewsets.ModelViewSet):
     serializer_class = BookSerializer
     permission_classes = [IsStaffUser]  # Allow GET for all, POST/PUT/DELETE for staff only
 
-    @action(detail=False, methods=['get'])
-    def available(self, request):
-        available_books = []
-        for book in self.get_queryset():
-            for ab in book.available_books.all():
-                if not ab.borrows.filter(date_returned__isnull=True).exists():
-                    available_books.append(book)
-                    break
-        serializer = self.get_serializer(available_books, many=True)
-        return Response(serializer.data)
-
 
 class AvailableBookViewSet(viewsets.ModelViewSet):
     queryset = AvailableBook.objects.all()  # Default queryset
