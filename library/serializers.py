@@ -48,10 +48,16 @@ class AvailableBookSerializer(serializers.ModelSerializer):
             return True
         return False
 
+
 class BorrowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrow
         fields = ['id', 'user', 'available_book', 'borrow_date', 'return_date', 'date_returned']
+
+    def validate(self, data):
+        if self.context['request'].method == 'POST' and Borrow.objects.filter(available_book=data['available_book'], date_returned__isnull=True).exists():
+            raise serializers.ValidationError('This book has already been borrowed and not returned yet.')
+        return data
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
