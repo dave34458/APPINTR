@@ -36,6 +36,7 @@ class BookSerializer(serializers.ModelSerializer):
         return False
 
 class AvailableBookSerializer(serializers.ModelSerializer):
+    book = BookSerializer(read_only=True)  # Nested serialization of book
     copy_is_available = serializers.SerializerMethodField()
 
     class Meta:
@@ -43,19 +44,32 @@ class AvailableBookSerializer(serializers.ModelSerializer):
         fields = ['id', 'book', 'location', 'copy_is_available']
 
     def get_copy_is_available(self, obj):
-        # Check if there is at least one available copy of the book based on the get_is_available logic
         if not obj.borrows.filter(date_returned__isnull=True).exists():
             return True
         return False
 
 
 class BorrowSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    available_book = serializers.PrimaryKeyRelatedField(queryset=AvailableBook.objects.all())
+
     class Meta:
         model = Borrow
         fields = ['id', 'user', 'available_book', 'borrow_date', 'return_date', 'date_returned']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+
+        if request and request.method == 'GET':
+            self.fields['user'] = CustomUserSerializer(read_only=True)
+            self.fields['available_book'] = AvailableBookSerializer(read_only=True)
+
     def validate(self, data):
-        if self.context['request'].method == 'POST' and Borrow.objects.filter(available_book=data['available_book'], date_returned__isnull=True).exists():
+        if self.context['request'].method == 'POST' and Borrow.objects.filter(
+            available_book=data['available_book'],
+            date_returned__isnull=True
+        ).exists():
             raise serializers.ValidationError('This book has already been borrowed and not returned yet.')
         return data
 
