@@ -4,17 +4,30 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
-from .models import Book, Borrow, AvailableBook, Review
-from .serializers import BookSerializer, BorrowSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer
+from .models import Book, Borrow, AvailableBook, Review, CustomUser
+from .serializers import BookSerializer, BorrowSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer, CustomUserSerializer
 from .permissions import IsStaffUser  # Import the custom permission class
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsStaffUser]
+
+    def retrieve(self, request, *args, **kwargs):
+        # Check if the user is the logged-in user (i.e., self)
+        if kwargs.get('pk') == 'me':
+            # Return the currently authenticated user
+            user = request.user
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        # Default behavior for other users
+        return super().retrieve(request, *args, **kwargs)
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [IsStaffUser]  # Allow GET for all, POST/PUT/DELETE for staff only
-
 
 class AvailableBookViewSet(viewsets.ModelViewSet):
     queryset = AvailableBook.objects.all()  # Default queryset

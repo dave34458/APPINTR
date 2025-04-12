@@ -2,31 +2,31 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class IsStaffUser(BasePermission):
     """
-    - GET: available to everyone
-    - POST: only for logged-in users (but only for reviews)
-    - PUT/PATCH/DELETE: only for staff users
+    Custom permission class to restrict access to staff users.
+    - GET: Allowed for everyone except UserViewSet
+    - POST/PUT/PATCH/DELETE: Only allowed for staff users
     """
 
     def has_permission(self, request, view):
-        # Allow GET/HEAD/OPTIONS for everyone (including non-authenticated users)
-        if request.method in SAFE_METHODS:
+        # Allow GET/HEAD/OPTIONS for everyone except UserViewSet
+        if request.method in SAFE_METHODS and view.basename != 'user':
             return True
 
-        # POST:
-        if request.method == 'POST':
-            # Authenticated users (not staff) can post reviews
-            if request.user.is_authenticated and view.basename == 'review':
-                return True
-            # Staff can post anything
-            return request.user.is_authenticated and request.user.role == 'staff'
+        # POST for reviews: Authenticated users can post reviews
+        if request.method == 'POST' and view.basename == 'review':
+            return request.user.is_authenticated
 
-        # For PUT/PATCH/DELETE: only staff can modify resources
+        # For POST/PUT/PATCH/DELETE: Only staff can modify resources
         return request.user.is_authenticated and request.user.role == 'staff'
 
     def has_object_permission(self, request, view, obj):
-        # Allow GET/HEAD/OPTIONS for everyone
-        if request.method in SAFE_METHODS:
+        # Allow GET/HEAD/OPTIONS for everyone except UserViewSet
+        if request.method in SAFE_METHODS and view.basename != 'user':
             return True
 
-        # PUT/PATCH/DELETE: only staff can modify resources
+        # POST for reviews: Authenticated users can post reviews
+        if request.method == 'POST' and view.basename == 'review':
+            return request.user.is_authenticated
+
+        # PUT/PATCH/DELETE: Only staff can modify resources
         return request.user.is_authenticated and request.user.role == 'staff'
