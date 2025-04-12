@@ -36,11 +36,21 @@ class BorrowViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        borrow_id = self.kwargs.get('id')
 
-        if borrow_id:
-            queryset = queryset.filter(id=borrow_id)
+        # Get book_id and available_book_id from URL
+        book_id = self.kwargs.get('book_pk')  # The book ID in the URL
+        available_book_id = self.kwargs.get('available_book_pk')  # The available book ID in the URL
+
+        if book_id:
+            # Filter by book_id, assuming the relationship between Borrow and AvailableBook
+            queryset = queryset.filter(available_book__book_id=book_id)
+
+        if available_book_id:
+            # Filter by available_book_id, assuming Borrow has a foreign key to AvailableBook
+            queryset = queryset.filter(available_book_id=available_book_id)
+
         return queryset
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
