@@ -11,22 +11,22 @@ from .views import (
     UserViewSet
 )
 
-# Base router for flat resources (flat routes like /api/availablebooks/)
+# Base router for flat resources (flat routes like /api/available-books)
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'books', BookViewSet, basename='book')
-router.register(r'availablebooks', AvailableBookViewSet, basename='availablebook-flat')  # Ensure this is set
+router.register(r'available-books', AvailableBookViewSet, basename='available-book-flat')  # Ensure this is set
 router.register(r'borrows', BorrowViewSet, basename='borrow-flat')  # Ensure this is set
 router.register(r'reviews', ReviewViewSet, basename='review-flat')  # Ensure this is set
 
-# Nested router for /books/{book_pk}/availablebooks/
+# Nested router for /books/{book_pk}/available-books
 books_router = routers.NestedDefaultRouter(router, r'books', lookup='book')
-books_router.register(r'availablebooks', AvailableBookViewSet, basename='availablebook')
+books_router.register(r'available-books', AvailableBookViewSet, basename='available-book')
 
-# Nested router for /books/{book_pk}/availablebooks/{availablebook_pk}/borrows/
-availablebooks_router = routers.NestedDefaultRouter(books_router, r'availablebooks', lookup='availablebook')
+# Nested router for /books/{book_pk}/available-books/{available-book_pk}/borrows
+availablebooks_router = routers.NestedDefaultRouter(books_router, r'available-books', lookup='availablebook')
 availablebooks_router.register(r'borrows', BorrowViewSet, basename='borrow')
 
-# Nested router for /books/{book_pk}/reviews/
+# Nested router for /books/{book_pk}/reviews
 books_router.register(r'reviews', ReviewViewSet, basename='review')
 
 # URLs for registration and logout
