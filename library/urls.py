@@ -1,35 +1,41 @@
 from django.urls import path, include
 from rest_framework.authtoken.views import obtain_auth_token
-from rest_framework.routers import DefaultRouter
-from rest_framework_nested.routers import NestedDefaultRouter
-from .views import BookViewSet, AvailableBookViewSet, BorrowViewSet, ReviewViewSet, RegisterView, LogoutView, UserViewSet
+from rest_framework_nested import routers
+from .views import (
+    BookViewSet,
+    AvailableBookViewSet,
+    BorrowViewSet,
+    ReviewViewSet,
+    RegisterView,
+    LogoutView,
+    UserViewSet
+)
 
-# Default router for books and reviews
-router = DefaultRouter(trailing_slash=False)
+# Base router for flat resources (flat routes like /api/availablebooks/)
+router = routers.DefaultRouter(trailing_slash=False)
+router.register(r'books', BookViewSet, basename='book')
+router.register(r'availablebooks', AvailableBookViewSet, basename='availablebook-flat')  # Ensure this is set
+router.register(r'borrows', BorrowViewSet, basename='borrow-flat')  # Ensure this is set
+router.register(r'reviews', ReviewViewSet, basename='review-flat')  # Ensure this is set
+
+# Nested router for /books/{book_pk}/availablebooks/
+books_router = routers.NestedDefaultRouter(router, r'books', lookup='book')
+books_router.register(r'availablebooks', AvailableBookViewSet, basename='availablebook')
+
+# Nested router for /books/{book_pk}/availablebooks/{availablebook_pk}/borrows/
+availablebooks_router = routers.NestedDefaultRouter(books_router, r'availablebooks', lookup='availablebook')
+availablebooks_router.register(r'borrows', BorrowViewSet, basename='borrow')
+
+# Nested router for /books/{book_pk}/reviews/
+books_router.register(r'reviews', ReviewViewSet, basename='review')
+
+# URLs for registration and logout
 router.register(r'users', UserViewSet)
-router.register(r'books', BookViewSet)
-router.register(r'availablebooks', AvailableBookViewSet)
-router.register(r'borrows', BorrowViewSet)
-router.register(r'reviews', ReviewViewSet, basename='review')
-
-# Nested router for availablebooks under books
-books_router = NestedDefaultRouter(router, r'books', lookup='book')
-books_router.register(r'availablebooks', AvailableBookViewSet, basename='book-availablebooks')
-
-# Nested router for borrows under availablebooks
-available_books_router = NestedDefaultRouter(books_router, r'availablebooks', lookup='available_book')
-available_books_router.register(r'borrows', BorrowViewSet, basename='availablebook-borrows')
-
-# Nested router for reviews under books
-books_router.register(r'reviews', ReviewViewSet, basename='book-reviews')
-
-app_name = 'library'
 urlpatterns = [
+    path('', include(router.urls)),  # Flat routes should be included first
+    path('', include(books_router.urls)),
+    path('', include(availablebooks_router.urls)),
     path('auth/users', RegisterView.as_view()),
     path('auth/sessions', obtain_auth_token),
     path('auth/logout', LogoutView.as_view()),
-    path('', include(router.urls)),
-    path('', include(books_router.urls)),
-    path('', include(available_books_router.urls)),
 ]
-

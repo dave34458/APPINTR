@@ -1,32 +1,26 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework import permissions
 
-class IsStaffUser(BasePermission):
+class IsStaffOrReadOnly(permissions.BasePermission):
     """
-    Custom permission class to restrict access to staff users.
-    - GET: Allowed for everyone except UserViewSet
-    - POST/PUT/PATCH/DELETE: Only allowed for staff users
+    Allow anyone to read.
+    Only staff can write (POST/PUT/PATCH/DELETE).
     """
 
     def has_permission(self, request, view):
-        # Allow GET/HEAD/OPTIONS for everyone except UserViewSet
-        if request.method in SAFE_METHODS and view.basename != 'user':
+        if request.method in permissions.SAFE_METHODS:
             return True
+        return request.user and request.user.is_authenticated and request.user.role == 'staff'
 
-        # POST for reviews: Authenticated users can post reviews
-        if request.method == 'POST' and view.basename == 'review':
-            return request.user.is_authenticated
+class IsStaffOrReadOnlyExceptReviewPost(permissions.BasePermission):
+    """
+    Allow anyone to read.
+    Allow any authenticated user to POST.
+    Only staff can PUT/PATCH/DELETE.
+    """
 
-        # For POST/PUT/PATCH/DELETE: Only staff can modify resources
-        return request.user.is_authenticated and request.user.role == 'staff'
-
-    def has_object_permission(self, request, view, obj):
-        # Allow GET/HEAD/OPTIONS for everyone except UserViewSet
-        if request.method in SAFE_METHODS and view.basename != 'user':
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
             return True
-
-        # POST for reviews: Authenticated users can post reviews
-        if request.method == 'POST' and view.basename == 'review':
-            return request.user.is_authenticated
-
-        # PUT/PATCH/DELETE: Only staff can modify resources
-        return request.user.is_authenticated and request.user.role == 'staff'
+        if request.method == 'POST':
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.role == 'staff'

@@ -1,70 +1,108 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Book, Borrow, AvailableBook, Review, CustomUser
-from .serializers import BookSerializer, BorrowReadSerializer, BorrowWriteSerializer, UserRegisterSerializer, ReviewSerializer, AvailableBookSerializer, CustomUserSerializer
-from .permissions import IsStaffUser
+from .models import Book, AvailableBook, Borrow, Review, CustomUser
+from .serializers import BookSerializer, AvailableBookSerializer, ReviewSerializer, \
+    BorrowReadSerializer, BorrowWriteSerializer, UserRegisterSerializer, CustomUserSerializer
+from .permissions import IsStaffOrReadOnly, IsStaffOrReadOnlyExceptReviewPost
+
+from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [IsStaffUser]
+    permission_classes = [IsStaffOrReadOnly]
 
-    @action(detail=True, methods=['get'], url_path='reviews')
-    def get_reviews(self, request, pk=None):
-        book = self.get_object()
-        reviews = Review.objects.filter(book=book)
-        serializer = ReviewSerializer(reviews, many=True)
-        return Response(serializer.data)
 
 class AvailableBookViewSet(viewsets.ModelViewSet):
-    queryset = AvailableBook.objects.all()
     serializer_class = AvailableBookSerializer
-    permission_classes = [IsStaffUser]
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if book_pk := self.kwargs.get('book_pk'):
-            queryset = queryset.filter(book_id=book_pk)
-        return queryset
-
-class BorrowViewSet(viewsets.ModelViewSet):
-    queryset = Borrow.objects.all()
-    permission_classes = [IsStaffUser]
-
-    def get_serializer_class(self):
-        return BorrowReadSerializer if self.request.method == 'GET' else BorrowWriteSerializer
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        if book_id := self.kwargs.get('book_pk'):
-            queryset = queryset.filter(available_book__book_id=book_id)
-        if available_book_id := self.kwargs.get('available_book_pk'):
-            queryset = queryset.filter(available_book_id=available_book_id)
-        return queryset
-
-class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-    permission_classes = [IsStaffUser]
+        # If book_pk is present, filter available books by book.
+        book_pk = self.kwargs.get('book_pk')
+        if book_pk:
+            return AvailableBook.objects.filter(book_id=book_pk)
+        return AvailableBook.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Save available book with associated book_pk if provided.
+        book_pk = self.kwargs.get('book_pk')
+        if book_pk:
+            serializer.save(book_id=book_pk)
+        else:
+            serializer.save()
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
-    permission_classes = [IsStaffUser]
+    def get_permissions(self):
+        # Restrict POST, PUT, PATCH, DELETE on the "flat" uri (i.e., /availablebooks)
+        if self.action in ['create', 'update', 'partial_update', 'destroy'] and not self.kwargs.get('book_pk'):
+            self.permission_classes = []  # No permissions for the flat URI
+        return super().get_permissions()
 
-    def retrieve(self, request, *args, **kwargs):
-        if kwargs.get('pk') == 'me':
-            return Response(self.get_serializer(request.user).data)
-        return super().retrieve(request, *args, **kwargs)
+
+class BorrowViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsStaffOrReadOnly]
+
+    def get_queryset(self):
+        book_pk = self.kwargs.get('book_pk')
+        availablebook_pk = self.kwargs.get('availablebook_pk')
+
+        if book_pk and availablebook_pk:
+            return Borrow.objects.filter(available_book__book_id=book_pk, available_book_id=availablebook_pk)
+        if availablebook_pk:
+            return Borrow.objects.filter(available_book_id=availablebook_pk)
+        return Borrow.objects.all()
+
+    def perform_create(self, serializer):
+        availablebook_pk = self.kwargs.get('availablebook_pk')
+        if availablebook_pk:
+            available_book = AvailableBook.objects.get(id=availablebook_pk)
+            serializer.save(available_book=available_book, user=self.request.user)
+        else:
+            serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return BorrowReadSerializer
+        return BorrowWriteSerializer
+
+    def get_permissions(self):
+        # If on the flat URI and trying to do a non-GET action (POST, PUT, DELETE, etc.), raise a PermissionDenied
+        if self.action not in ['list', 'retrieve'] and not self.kwargs.get('book_pk'):
+            raise PermissionDenied("You are not allowed to perform this action on the flat URI.")
+        return super().get_permissions()
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsStaffOrReadOnlyExceptReviewPost]
+
+    def get_queryset(self):
+        book_pk = self.kwargs.get('book_pk')
+        if book_pk:
+            return Review.objects.filter(book_id=book_pk)
+        return Review.objects.all()
+
+    def perform_create(self, serializer):
+        book_pk = self.kwargs.get('book_pk')
+        if book_pk:
+            serializer.save(book_id=book_pk, user=self.request.user)
+        else:
+            serializer.save(user=self.request.user)
+
+    def get_permissions(self):
+        # If on the flat URI and trying to do a non-GET action (POST, PUT, DELETE, etc.), raise a PermissionDenied
+        if self.action not in ['list', 'retrieve'] and not self.kwargs.get('book_pk'):
+            raise PermissionDenied("You are not allowed to perform this action on the flat URI.")
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return ReviewSerializer
+        return ReviewSerializer
+
 
 class RegisterView(APIView):
     def post(self, request):
@@ -81,3 +119,13 @@ class LogoutView(APIView):
     def delete(self, request):
         request.user.auth_token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        if kwargs.get('pk') == 'me':
+            return Response(self.get_serializer(request.user).data)
+        return super().retrieve(request, *args, **kwargs)
