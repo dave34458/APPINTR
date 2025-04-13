@@ -49,7 +49,16 @@ class AvailableBookSerializer(serializers.ModelSerializer):
         return False
 
 
-class BorrowSerializer(serializers.ModelSerializer):
+class BorrowReadSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+    available_book = AvailableBookSerializer()
+
+    class Meta:
+        model = Borrow
+        fields = ['id', 'user', 'available_book', 'borrow_date', 'return_date', 'date_returned']
+
+
+class BorrowWriteSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
     available_book = serializers.PrimaryKeyRelatedField(queryset=AvailableBook.objects.all())
 
@@ -57,23 +66,17 @@ class BorrowSerializer(serializers.ModelSerializer):
         model = Borrow
         fields = ['id', 'user', 'available_book', 'borrow_date', 'return_date', 'date_returned']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        request = self.context.get('request')
-
-        if request and request.method == 'GET':
-            self.fields['user'] = CustomUserSerializer(read_only=True)
-            self.fields['available_book'] = AvailableBookSerializer(read_only=True)
-
     def validate(self, data):
         if self.context['request'].method == 'POST' and Borrow.objects.filter(
-            available_book=data['available_book'],
-            date_returned__isnull=True
+            available_book=data['available_book'], date_returned__isnull=True
         ).exists():
             raise serializers.ValidationError('This book has already been borrowed and not returned yet.')
         return data
 
+
 class ReviewSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only=True)
+
     class Meta:
         model = Review
         fields = ['id', 'user', 'book', 'rating', 'comment']
