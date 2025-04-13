@@ -37,7 +37,7 @@ class BookSerializer(serializers.ModelSerializer):
         )
 
 
-class AvailableBookSerializer(serializers.ModelSerializer):
+class AvailableBookReadSerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)
     copy_is_available = serializers.SerializerMethodField()
 
@@ -48,10 +48,17 @@ class AvailableBookSerializer(serializers.ModelSerializer):
     def get_copy_is_available(self, obj):
         return not obj.borrows.filter(date_returned__isnull=True).exists()
 
+class AvailableBookWriteSerializer(serializers.ModelSerializer):
+    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all())
+
+    class Meta:
+        model = AvailableBook
+        fields = ['id', 'book', 'location']
+
 
 class BorrowReadSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer(read_only=True)
-    available_book = AvailableBookSerializer(read_only=True)
+    available_book = AvailableBookReadSerializer(read_only=True)
 
     class Meta:
         model = Borrow

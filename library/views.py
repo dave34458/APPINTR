@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from .models import Book, AvailableBook, Borrow, Review, CustomUser
-from .serializers import BookSerializer, AvailableBookSerializer, ReviewSerializer, \
+from .serializers import BookSerializer, AvailableBookReadSerializer, AvailableBookWriteSerializer, ReviewSerializer, \
     BorrowReadSerializer, BorrowWriteSerializer, UserRegisterSerializer, CustomUserSerializer
 from .permissions import IsStaffOrReadOnly, IsStaffOrReadOnlyExceptReviewPost
 
@@ -17,29 +17,24 @@ class BookViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
 
 
+
 class AvailableBookViewSet(viewsets.ModelViewSet):
-    serializer_class = AvailableBookSerializer
     permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
-        # If book_pk is present, filter available books by book.
         book_pk = self.kwargs.get('book_pk')
         if book_pk:
             return AvailableBook.objects.filter(book_id=book_pk)
         return AvailableBook.objects.all()
 
-    def perform_create(self, serializer):
-        # Save available book with associated book_pk if provided.
-        book_pk = self.kwargs.get('book_pk')
-        if book_pk:
-            serializer.save(book_id=book_pk)
-        else:
-            serializer.save()
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return AvailableBookReadSerializer  # Read serializer (with `copy_is_available`)
+        return AvailableBookWriteSerializer  # Write serializer (with `book_id`)
 
     def get_permissions(self):
-        # Restrict POST, PUT, PATCH, DELETE on the "flat" uri (i.e., /availablebooks)
         if self.action in ['create', 'update', 'partial_update', 'destroy'] and not self.kwargs.get('book_pk'):
-            self.permission_classes = []  # No permissions for the flat URI
+            self.permission_classes = []
         return super().get_permissions()
 
 
@@ -57,12 +52,7 @@ class BorrowViewSet(viewsets.ModelViewSet):
         return Borrow.objects.all()
 
     def perform_create(self, serializer):
-        availablebook_pk = self.kwargs.get('availablebook_pk')
-        if availablebook_pk:
-            available_book = AvailableBook.objects.get(id=availablebook_pk)
-            serializer.save(available_book=available_book, user=self.request.user)
-        else:
-            serializer.save(user=self.request.user)
+        serializer.save()
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
