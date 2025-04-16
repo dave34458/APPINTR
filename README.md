@@ -1,31 +1,9 @@
-# Book
-Fields: id, title, author, published_date, isbn
+0. run backend project on terminal: py manage.py runserver
+1. run frontend project on terminal: py manage.py runserver 8001
+2. go to link: http://127.0.0.1:8001/library/index
 
-Routes:
-  GET/POST           /books
-  
-  GET/PUT/PATCH/DELETE /books/{book_id}
+Staff Account 
+username: a 
+password: a
 
-# AvailableBook
-Fields: id, book (FK), location, is_available
-
-Routes:
-  GET/POST           /books/{book_pk}/availablebooks
-  
-  GET/PUT/PATCH/DELETE /books/{book_pk}/availablebooks/{id}
-
-# Borrow
-Fields: id, available_book (FK), user (FK), borrow_date, return_date
-
-Routes:
-  GET/POST           /books/{book_pk}/availablebooks/{available_book_pk}/borrows
-  
-  GET/PUT/PATCH/DELETE /books/{book_pk}/availablebooks/{available_book_pk}/borrows/{id}
-
-# Review
-Fields: id, book (FK), user (FK), rating, comment
-
-Routes:
-  GET/POST           /books/{book_pk}/reviews
-  
-  GET/PUT/PATCH/DELETE /books/{book_pk}/reviews/{id}
+Non Staff Acount (you can create one by registering)
