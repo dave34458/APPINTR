@@ -113,7 +113,7 @@ class LogoutView(APIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffOrReadOnly]
 
     def retrieve(self, request, *args, **kwargs):
         if kwargs.get('pk') == 'me':
