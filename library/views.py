@@ -16,8 +16,6 @@ class BookViewSet(viewsets.ModelViewSet):
     serializer_class = BookSerializer
     permission_classes = [IsStaffOrReadOnly]
 
-
-
 class AvailableBookViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
 
@@ -29,14 +27,13 @@ class AvailableBookViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
-            return AvailableBookReadSerializer  # Read serializer (with `copy_is_available`)
-        return AvailableBookWriteSerializer  # Write serializer (with `book_id`)
+            return AvailableBookReadSerializer
+        return AvailableBookWriteSerializer
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy'] and not self.kwargs.get('book_pk'):
             self.permission_classes = []
         return super().get_permissions()
-
 
 class BorrowViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
@@ -62,7 +59,6 @@ class BorrowViewSet(viewsets.ModelViewSet):
         return BorrowWriteSerializer
 
     def get_permissions(self):
-        # If on the flat URI and trying to do a non-GET action (POST, PUT, DELETE, etc.), raise a PermissionDenied
         if self.action not in ['list', 'retrieve'] and not self.kwargs.get('book_pk'):
             raise PermissionDenied("You are not allowed to perform this action on the flat URI.")
         return super().get_permissions()
@@ -88,7 +84,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
             serializer.save(user=self.request.user)
 
     def get_permissions(self):
-        # If on the flat URI and trying to do a non-GET action (POST, PUT, DELETE, etc.), raise a PermissionDenied
         if self.action not in ['list', 'retrieve'] and not self.kwargs.get('book_pk'):
             raise PermissionDenied("You are not allowed to perform this action on the flat URI.")
         return super().get_permissions()
