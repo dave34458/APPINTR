@@ -42,9 +42,11 @@ class BorrowViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
+        user_param = self.request.query_params.get('user')
+        if user_param == 'me' and self.request.user.is_authenticated:
+            return Borrow.objects.filter(user=self.request.user)
         book_pk = self.kwargs.get('book_pk')
         availablebook_pk = self.kwargs.get('availablebook_pk')
-
         if book_pk and availablebook_pk:
             return Borrow.objects.filter(available_book__book_id=book_pk, available_book_id=availablebook_pk)
         if availablebook_pk:
@@ -70,6 +72,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnlyExceptReviewPost]
 
     def get_queryset(self):
+        user_param = self.request.query_params.get('user')
+        if user_param == 'me' and self.request.user.is_authenticated:
+            return Review.objects.filter(user=self.request.user)
         book_pk = self.kwargs.get('book_pk')
         if book_pk:
             return Review.objects.filter(book_id=book_pk)

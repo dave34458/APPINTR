@@ -97,7 +97,11 @@ class BorrowWriteSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer(read_only=True)
+    book = BookSerializer(read_only=True)
 
     class Meta:
         model = Review
         fields = ['id', 'user', 'book', 'rating', 'comment']
+
+    def create(self, validated_data):
+        return Review.objects.create(**validated_data)
