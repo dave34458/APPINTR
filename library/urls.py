@@ -7,8 +7,8 @@ from .views import (
     BorrowViewSet,
     ReviewViewSet,
     RegisterView,
-    LogoutView,
-    UserViewSet
+    UserViewSet,
+    SessionView
 )
 
 
@@ -36,6 +36,5 @@ urlpatterns = [
     path('', include(books_router.urls)),
     path('', include(availablebooks_router.urls)),
     path('auth/users', RegisterView.as_view()),
-    path('auth/sessions', obtain_auth_token),
-    path('auth/logout', LogoutView.as_view()),
+    path('auth/sessions', SessionView.as_view()),
 ]
