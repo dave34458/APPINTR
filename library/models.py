@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -27,7 +29,7 @@ class AvailableBook(models.Model):
 class Borrow(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     available_book = models.ForeignKey(AvailableBook, related_name="borrows", on_delete=models.CASCADE)
-    borrow_date = models.DateField(auto_now_add=True)
+    borrow_date = models.DateField(default=timezone.now)
     return_date = models.DateField()
     date_returned = models.DateField(null=True, blank=True)
 
